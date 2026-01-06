@@ -1,28 +1,27 @@
 import { SearchBar } from "../SearchBar/SearchBar";
-import type { Movie } from "../../types/movie";
 import { useState } from "react";
+import type { Movie } from "../../types/movie";
+import { fetchMovies } from "../../services/movieService";
+
 import MovieGrid from "../MovieGrid/MovieGrid";
 import Loader from "../Loader/Loader";
-
+import toast from "react-hot-toast";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import { fetchMovies } from "../../services/movieService";
 import MovieModal from "../MovieModal/MovieModal";
+
+const errorMessage = () => toast.error("No movies found for your request.");
 
 export default function App() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
 
-  const openModal = () => setIsModalOpen(true);
   const closeModal = () => {
-    setIsModalOpen(false);
     setCurrentMovie(null);
   };
 
-  const renderModal = (movie: Movie) => {
-    openModal();
+  const selectMovie = (movie: Movie) => {
     setCurrentMovie(movie);
   };
 
@@ -30,8 +29,13 @@ export default function App() {
     try {
       setIsLoading(true);
       setIsError(false);
+      setMovies([]);
 
       const data = await fetchMovies(query);
+      if (data.length === 0) {
+        errorMessage();
+        return;
+      }
 
       setMovies(data);
     } catch {
@@ -47,9 +51,9 @@ export default function App() {
       {isLoading && <Loader />}
       {isError && <ErrorMessage />}
       {movies.length > 0 && (
-        <MovieGrid movies={movies} onSelect={renderModal} />
+        <MovieGrid movies={movies} onSelect={selectMovie} />
       )}
-      {isModalOpen && <MovieModal onClose={closeModal} movie={currentMovie} />}
+      {currentMovie && <MovieModal movie={currentMovie} onClose={closeModal} />}
     </>
   );
 }
